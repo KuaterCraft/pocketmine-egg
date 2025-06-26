@@ -1,0 +1,43 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2025-06-26T10:50:23+01:00",
+    "name": "PocketmineMP v2",
+    "author": "kuatercraft@gmail.com",
+    "originalAuthor": "info@swisscrafting.ch",
+    "description": "PocketMine-MP is a free and open-source server software for Minecraft: Bedrock Edition, written in PHP. It allows you to run your own Minecraft server with custom plugins and configurations.",
+    "features": null,
+    "docker_images": {
+        "ghcr.io\/parkervcp\/yolks:debian": "ghcr.io\/parkervcp\/yolks:debian"
+    },
+    "file_denylist": [],
+    "startup": ".\/bin\/php7\/bin\/php .\/PocketMine-MP.phar --no-wizard --disable-ansi",
+    "config": {
+        "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-ip\": \"0.0.0.0\",\r\n            \"enable-query\": \"true\",\r\n            \"server-port\": \"{{server.build.default.port}}\",\r\n            \"query.port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
+        "startup": "{\r\n    \"done\": \")! \"\r\n}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!\/bin\/bash\r\n\r\n\r\nset -e\r\n\r\napt-get update\r\napt-get install -y git curl wget jq file tar unzip zip\r\n\r\nmkdir -p \/mnt\/server\/\r\ncd \/mnt\/server\/ || exit 1\r\n\r\necho \"INFO: Preparing to install PocketMine-MP...\"\r\n\r\nVERSION=\"${VERSION:-PM5}\"\r\nVERSION=\"${VERSION^^}\"\r\nOS_ARCH=\"Linux-x86_64\"\r\n\r\nif [[ \"${VERSION}\" == \"PM4\" ]]; then\r\n    API_CHANNEL=\"4\"\r\nelif [[ \"${VERSION}\" == \"PM5\" ]]; then\r\n    API_CHANNEL=\"stable\"\r\nelse\r\n    echo \"FATAL: Unsupported PocketMine-MP version specified: ${VERSION}\"\r\n    exit 1\r\nfi\r\necho \"INFO: Using API channel: '${API_CHANNEL}' for PocketMine version ${VERSION}.\"\r\n\r\nRELEASE_INFO=$(curl -sSL \"https:\/\/update.pmmp.io\/api?channel=${API_CHANNEL}\")\r\n\r\nPHP_VERSION=$(echo \"${RELEASE_INFO}\" | jq -r \".php_version\")\r\nPHP_RELEASE_TAG_URL=$(echo \"${RELEASE_INFO}\" | jq -r \".php_download_url\")\r\nPHP_RELEASE_TAG=$(basename \"${PHP_RELEASE_TAG_URL}\")\r\nPHP_FILENAME=\"PHP-${PHP_VERSION}-${OS_ARCH}-${VERSION}.tar.gz\"\r\nFINAL_PHP_URL=\"https:\/\/github.com\/pmmp\/PHP-Binaries\/releases\/download\/${PHP_RELEASE_TAG}\/${PHP_FILENAME}\"\r\nPHAR_DOWNLOAD_URL=$(echo \"${RELEASE_INFO}\" | jq -r \".download_url\")\r\n\r\necho \"INFO: Downloading PHP binary from: ${FINAL_PHP_URL}\"\r\ncurl -L \"${FINAL_PHP_URL}\" | tar -xvz\r\necho \"INFO: PHP binary downloaded.\"\r\n\r\n\r\necho \"INFO: Correcting php.ini using a relative path...\"\r\nPHP_INI_PATH=\".\/bin\/php7\/bin\/php.ini\"\r\n\r\nEXTENSION_DIR=$(find . -type d -name \"no-debug-zts-*\")\r\n\r\nif [ -f \"${PHP_INI_PATH}\" ]; then\r\n    sed -i '\/^;*extension_dir\/d' \"${PHP_INI_PATH}\"\r\n    echo \"extension_dir = \\\"${EXTENSION_DIR}\\\"\" | cat - \"${PHP_INI_PATH}\" > temp && mv temp \"${PHP_INI_PATH}\"\r\n    echo \"INFO: php.ini successfully modified with relative path: ${EXTENSION_DIR}\"\r\nelse\r\n    echo \"WARNING: php.ini not found. Cannot set extension_dir.\"\r\nfi\r\n\r\necho \"INFO: Downloading PocketMine-MP.phar from: ${PHAR_DOWNLOAD_URL}\"\r\ncurl -L -o PocketMine-MP.phar \"${PHAR_DOWNLOAD_URL}\"\r\necho \"INFO: PocketMine-MP.phar downloaded.\"\r\n\r\nif [[ ! -f server.properties ]]; then\r\n  echo \"INFO: Downloading default server.properties...\"\r\n  curl -L -o server.properties https:\/\/raw.githubusercontent.com\/parkervcp\/eggs\/master\/game_eggs\/minecraft\/bedrock\/pocketmine_mp\/server.properties\r\nfi\r\necho \"INFO: Creating default file and folder structure...\"\r\ntouch banned-ips.txt banned-players.txt ops.txt white-list.txt server.log\r\nmkdir -p players worlds plugins resource_packs\r\n\r\necho -e \"\\n----------------------------------------\\n| PocketMine-MP Installation Complete    |\\n----------------------------------------\"\r\n",
+            "container": "ghcr.io\/parkervcp\/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version to install",
+            "description": "The version of PocketMine-MP to install. Use PM5 for the latest stable release or PM4 for the legacy version.",
+            "env_variable": "VERSION",
+            "default_value": "PM5",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:PM5,PM4",
+            "field_type": "text"
+        }
+    ]
+}
